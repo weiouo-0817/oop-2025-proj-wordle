@@ -6,7 +6,7 @@ from word import word_list  # 你的五字母單字列表
 
 pygame.init()
 
-WIDTH, HEIGHT = 600, 700
+WIDTH, HEIGHT = 600, 850
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Wordle - Pygame GUI")
 
@@ -17,6 +17,13 @@ GREEN = (106, 170, 100)
 YELLOW = (201, 180, 88)
 DARKGRAY = (120, 124, 126)
 RED = (255, 0, 0)
+
+KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]       # 鍵盤排列
+KEY_SIZE = 40                                           # 每顆鍵寬高
+KEY_GAP  = 6
+KEY_TOP  = HEIGHT - 3*(KEY_SIZE+KEY_GAP) - 40           # 離底部 40px
+letter_state = {c: 'unused' for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}  # 綠 / 黃 / 灰 / 未用
+color_map = {'green': GREEN, 'yellow': YELLOW, 'gray': GRAY, 'unused': DARKGRAY}
 
 FONT = pygame.font.SysFont("arial", 48)
 SMALL_FONT = pygame.font.SysFont("arial", 24)
@@ -72,30 +79,72 @@ def draw_board(guesses, colors, current_guess, error_msg, game_over, win):
         msg_text = "You Win! :)" if win else f"You Lose! Word: {chosen_word.upper()}"
         msg_surface = SMALL_FONT.render(msg_text, True, BLACK)
         WIN.blit(msg_surface, (WIDTH // 2 - msg_surface.get_width() // 2, HEIGHT - 50))
-    
+        
+    for r, row in enumerate(KEY_ROWS):
+        for c, ch in enumerate(row):
+            x = (WIDTH - len(row)*(KEY_SIZE+KEY_GAP))//2 + c*(KEY_SIZE+KEY_GAP)
+            y = KEY_TOP + r*(KEY_SIZE+KEY_GAP)
+            rect = pygame.Rect(x, y, KEY_SIZE, KEY_SIZE)
+            clr  = color_map[letter_state[ch]]
+            pygame.draw.rect(WIN, clr, rect, border_radius=4)
+            pygame.draw.rect(WIN, BLACK, rect, 2, border_radius=4)
+
+            txt = SMALL_FONT.render(ch, True, BLACK)
+            WIN.blit(txt, (x+KEY_SIZE//2-txt.get_width()//2,
+                           y+KEY_SIZE//2-txt.get_height()//2))        
     pygame.display.update()
 
-def check_guess(guess, chosen_word):
+def check_guess(guess, chosen):
+    """回傳 [0/1/2] 清單；並同步更新 letter_state"""
     result = [0]*COLS
     alpha = [0]*26
-    for c in chosen_word:
-        alpha[ord(c)-ord('a')] += 1
-    
+    for c in chosen:
+        alpha[ord(c)-97] += 1
+
+    # ① 先標出正確位置
     for i in range(COLS):
-        if guess[i] == chosen_word[i]:
+        if guess[i] == chosen[i]:
             result[i] = 1
-            alpha[ord(guess[i]) - ord('a')] -= 1
-    
+            alpha[ord(guess[i])-97] -= 1
+
+    # ② 再標出存在但位置錯
     for i in range(COLS):
-        if result[i] == 0:
-            if alpha[ord(guess[i]) - ord('a')] > 0:
-                result[i] = 2
-                alpha[ord(guess[i]) - ord('a')] -= 1
-            else:
-                result[i] = 0
+        if result[i] == 0 and alpha[ord(guess[i])-97] > 0:
+            result[i] = 2
+            alpha[ord(guess[i])-97] -= 1
+
+    # ③ 更新鍵盤顏色（綠 > 黃 > 灰）
+    for i, ch in enumerate(guess):
+        if result[i] == 1:
+            letter_state[ch.upper()] = 'green'
+        elif result[i] == 2 and letter_state[ch.upper()] != 'green':
+            letter_state[ch.upper()] = 'yellow'
+        elif letter_state[ch.upper()] not in ('green', 'yellow'):
+            letter_state[ch.upper()] = 'gray'
+
     return result
 
+def show_start_screen():
+    WIN.fill(WHITE)
+    title = FONT.render("Welcome to Wordle!", True, BLACK)
+    prompt = SMALL_FONT.render("Press any key to start", True, DARKGRAY)
+
+    WIN.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//3))
+    WIN.blit(prompt, (WIDTH//2 - prompt.get_width()//2, HEIGHT//2))
+    pygame.display.update()
+
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                waiting = False
+                
 def main():
+    
+    show_start_screen()
     guesses = []
     colors = []
     current_guess = ""
