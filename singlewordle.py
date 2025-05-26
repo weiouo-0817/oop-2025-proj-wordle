@@ -38,13 +38,19 @@ LEFT_MARGIN = (WIDTH - (COLS * BOX_SIZE + (COLS - 1) * GAP)) // 2
 
 BG_IMG = pygame.image.load("image/8623_m.JPG").convert()
 BG_IMG = pygame.transform.scale(BG_IMG, (WIDTH, HEIGHT))
+
+
+BG_IMG_GAME  = pygame.image.load("image/123.jpg").convert()
+BG_IMG_GAME  = pygame.transform.scale(BG_IMG_GAME, (WIDTH, HEIGHT))
+
+
 d = enchant.Dict("en_US")
 chosen_word = random.choice(word_list).lower()
 
 def draw_board(guesses, colors, current_guess, error_msg, game_over, win):
     global home_btn_rect 
     
-    WIN.fill(WHITE)
+    WIN.blit(BG_IMG_GAME, (0, 0))  # 使用遊戲背景圖片
     title_text = FONT.render("Wordle", True, BLACK)
     WIN.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 20))
     

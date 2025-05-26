@@ -42,6 +42,9 @@ LEFT_MARGIN = (WIDTH - (COLS * BOX_SIZE + (COLS - 1) * GAP)) // 2
 BG_IMG = pygame.image.load("image/23671474_m.jpg").convert()
 BG_IMG = pygame.transform.scale(BG_IMG, (WIDTH, HEIGHT))
 
+BG_IMG_GAME  = pygame.image.load("image/123.jpg").convert()
+BG_IMG_GAME  = pygame.transform.scale(BG_IMG_GAME, (WIDTH, HEIGHT))
+
 d = enchant.Dict("en_US")
 
 def choose_player_count():
@@ -109,7 +112,7 @@ def input_player_names(num_players):
     return names
     
 def show_final_scores(players, scores):
-    WIN.fill(WHITE)
+    WIN.blit(BG_IMG_GAME, (0, 0))  # 使用遊戲背景圖片
     title = FONT.render("Final Scores", True, BLACK)
     WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, 40))
 
@@ -142,7 +145,7 @@ def draw_board(guesses, colors, current_guess, error_msg, letter_state, players,
     
     global home_btn_rect # 用於回到主選單
     
-    WIN.fill(WHITE)
+    WIN.blit(BG_IMG_GAME, (0, 0))  # 使用遊戲背景圖片
     title_text = FONT.render("Wordle", True, BLACK)
     WIN.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 10))
 
