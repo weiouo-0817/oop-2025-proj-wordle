@@ -13,8 +13,8 @@ BLACK = (0, 0, 0)
 GRAY = (180, 180, 180)
 GREEN = (106, 170, 100)
 
-FONT = pygame.font.SysFont("arial", 36)
-BUTTON_FONT = pygame.font.SysFont("arial", 28)
+FONT = pygame.font.SysFont("arial", 36, bold=True)
+BUTTON_FONT = pygame.font.SysFont("arial", 28 , bold=True)
 
 def draw_start_menu():
     WIN.fill(WHITE)

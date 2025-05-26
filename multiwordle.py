@@ -8,7 +8,7 @@ from word import word_list
 
 pygame.init()
 
-WIDTH, HEIGHT = 500, 700
+WIDTH, HEIGHT = 600, 750
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Wordle - 6 Players Turn-Based Single Word")
 
@@ -16,19 +16,21 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
 GREEN = (106, 170, 100)
-YELLOW = (201, 180, 88)
+YELLOW = (255, 223, 0)
 DARKGRAY = (120, 124, 126)
 RED = (255, 0, 0)
 
 KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
-KEY_SIZE = 30
-KEY_GAP = 5
+KEY_SIZE = 40
+KEY_GAP = 6
 KEY_TOP = HEIGHT - 3*(KEY_SIZE+KEY_GAP) - 100  # 上移鍵盤
 
-color_map = {'green': GREEN, 'yellow': YELLOW, 'gray': GRAY, 'unused': DARKGRAY}
+color_map = {'green': GREEN, 'yellow': YELLOW, 'gray': DARKGRAY, 'unused': GRAY}
 
-FONT = pygame.font.SysFont("arial", 36)
-SMALL_FONT = pygame.font.SysFont("arial", 20)
+FONT = pygame.font.SysFont("arial", 45, bold=True)
+SMALL_FONT = pygame.font.SysFont("arial", 20, bold=True)
+NAME_FONT = pygame.font.SysFont("arial", 30, bold=True)
+LABEL_FONT = pygame.font.SysFont("arial", 28, bold=True)
 
 ROWS = 6
 COLS = 5
@@ -53,11 +55,11 @@ def input_player_names():
         WIN.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, 80))
 
         for i in range(6):
-            color = GREEN if i == current_idx else BLACK
-            label = SMALL_FONT.render(f"Player {i+1}:", True, BLACK)
-            WIN.blit(label, (50, 150 + i * 40))
-            name_text = FONT.render(names[i], True, color)
-            WIN.blit(name_text, (180, 135 + i * 40))
+            color = RED if i == current_idx else BLACK
+            label = LABEL_FONT.render(f"Player {i+1}:", True, BLACK )
+            WIN.blit(label, (50, 150 + i * 60))
+            name_text = NAME_FONT.render(names[i], True, color)
+            WIN.blit(name_text, (190, 150 + i * 60))
 
         pygame.display.update()
         
@@ -111,6 +113,9 @@ def show_final_scores(players, scores):
                     sys.exit()
 
 def draw_board(guesses, colors, current_guess, error_msg, letter_state, players, current_player, scores):
+    
+    global home_btn_rect # 用於回到主選單
+    
     WIN.fill(WHITE)
     title_text = FONT.render("Wordle - 6 Players", True, BLACK)
     WIN.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 10))
@@ -172,6 +177,14 @@ def draw_board(guesses, colors, current_guess, error_msg, letter_state, players,
     end_txt = SMALL_FONT.render("End Game", True, WHITE)
     WIN.blit(end_txt, (end_btn_rect.x + 60 - end_txt.get_width() // 2,
                        end_btn_rect.y + 18 - end_txt.get_height() // 2))
+    
+    # ---------- 新增 Home 按鈕（右下，靠 End 的左邊一點） ----------
+    home_btn_rect = pygame.Rect(WIDTH-270, HEIGHT-45, 110, 35)
+    pygame.draw.rect(WIN, DARKGRAY, home_btn_rect, border_radius=8)
+    home_txt = SMALL_FONT.render("Home", True, WHITE)
+    WIN.blit(home_txt,
+             (home_btn_rect.x + 55 - home_txt.get_width()//2,
+              home_btn_rect.y + 18 - home_txt.get_height()//2))   
 
     pygame.display.update()
 
@@ -227,6 +240,16 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = event.pos
                 if WIDTH - 140 <= mx <= WIDTH - 20 and HEIGHT - 45 <= my <= HEIGHT - 10:
+                    show_final_scores(players, scores)
+
+                # --- 點 Home：回到主選單 (main.py) ---
+                if home_btn_rect.collidepoint(mx, my):
+                    subprocess.Popen([sys.executable, "main.py"])
+                    pygame.quit()      # 關閉目前視窗
+                    sys.exit()
+
+                # --- 點 End Game：照舊顯示總分 ---
+                if WIDTH-140 <= mx <= WIDTH-20 and HEIGHT-45 <= my <= HEIGHT-10:
                     show_final_scores(players, scores)
 
             elif event.type == pygame.KEYDOWN:

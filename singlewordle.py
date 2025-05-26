@@ -2,6 +2,7 @@ import pygame
 import sys
 import random
 import enchant
+import subprocess
 from word import word_list  # 你的五字母單字列表
 
 pygame.init()
@@ -14,7 +15,7 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
 GREEN = (106, 170, 100)
-YELLOW = (201, 180, 88)
+YELLOW = (255, 223, 0)
 DARKGRAY = (120, 124, 126)
 RED = (255, 0, 0)
 
@@ -23,9 +24,9 @@ KEY_SIZE = 40                                           # 每顆鍵寬高
 KEY_GAP  = 6
 KEY_TOP  = HEIGHT - 3*(KEY_SIZE+KEY_GAP) - 40           # 離底部 40px
 letter_state = {c: 'unused' for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}  # 綠 / 黃 / 灰 / 未用
-color_map = {'green': GREEN, 'yellow': YELLOW, 'gray': GRAY, 'unused': DARKGRAY}
+color_map = {'green': GREEN, 'yellow': YELLOW, 'gray': DARKGRAY, 'unused': GRAY}
 
-FONT = pygame.font.SysFont("arial", 48)
+FONT = pygame.font.SysFont("arial", 48, bold=True)
 SMALL_FONT = pygame.font.SysFont("arial", 24)
 
 ROWS = 6
@@ -39,6 +40,8 @@ d = enchant.Dict("en_US")
 chosen_word = random.choice(word_list).lower()
 
 def draw_board(guesses, colors, current_guess, error_msg, game_over, win):
+    global home_btn_rect 
+    
     WIN.fill(WHITE)
     title_text = FONT.render("Wordle", True, BLACK)
     WIN.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 20))
@@ -91,7 +94,16 @@ def draw_board(guesses, colors, current_guess, error_msg, game_over, win):
 
             txt = SMALL_FONT.render(ch, True, BLACK)
             WIN.blit(txt, (x+KEY_SIZE//2-txt.get_width()//2,
-                           y+KEY_SIZE//2-txt.get_height()//2))        
+                           y+KEY_SIZE//2-txt.get_height()//2))    
+
+    # ---------- 新增 Home 按鈕（右下，靠 End 的左邊一點） ----------
+    home_btn_rect = pygame.Rect(WIDTH-270, HEIGHT-45, 110, 35)
+    pygame.draw.rect(WIN, DARKGRAY, home_btn_rect, border_radius=8)
+    home_txt = SMALL_FONT.render("Home", True, WHITE)
+    WIN.blit(home_txt,
+             (home_btn_rect.x + 50 - home_txt.get_width()//2,
+              home_btn_rect.y + 18 - home_txt.get_height()//2))      
+                
     pygame.display.update()
 
 def check_guess(guess, chosen):
@@ -161,7 +173,20 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mx, my = event.pos
+
+                # --- 點 Home：回到主選單 (main.py) ---
+                if home_btn_rect.collidepoint(mx, my):
+                    subprocess.Popen([sys.executable, "main.py"])
+                    pygame.quit()      # 關閉目前視窗
+                    sys.exit()
+
+                # --- 點 End Game：照舊顯示總分 ---
+                if WIDTH-140 <= mx <= WIDTH-20 and HEIGHT-45 <= my <= HEIGHT-10:
+                    show_final_scores(players, scores)
+
             if game_over:
                 continue
             
@@ -196,4 +221,4 @@ def main():
         draw_board(guesses, colors, current_guess, error_msg, game_over, win)
 
 if __name__ == "__main__":
-    main()
+        main() 
