@@ -8,18 +8,22 @@ WIDTH, HEIGHT = 500, 600
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Wordle Start Menu")
 
+BG_IMG = pygame.image.load("image/8623_m.JPG").convert()
+BG_IMG = pygame.transform.scale(BG_IMG, (WIDTH, HEIGHT))
+
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (180, 180, 180)
 GREEN = (106, 170, 100)
 
+TITLE_FONT = pygame.font.SysFont("arial", 48, bold=True)
 FONT = pygame.font.SysFont("arial", 36, bold=True)
 BUTTON_FONT = pygame.font.SysFont("arial", 28 , bold=True)
 
 def draw_start_menu():
-    WIN.fill(WHITE)
+    WIN.blit(BG_IMG, (0, 0))
 
-    title = FONT.render("Welcome to Wordle!", True, BLACK)
+    title = TITLE_FONT.render("Welcome to Wordle!", True, BLACK)
     WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, 100))
 
     single_button = pygame.Rect(WIDTH//2 - 100, 220, 200, 60)

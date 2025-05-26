@@ -36,6 +36,8 @@ GAP = 10
 TOP_MARGIN = 100
 LEFT_MARGIN = (WIDTH - (COLS * BOX_SIZE + (COLS - 1) * GAP)) // 2
 
+BG_IMG = pygame.image.load("image/8623_m.JPG").convert()
+BG_IMG = pygame.transform.scale(BG_IMG, (WIDTH, HEIGHT))
 d = enchant.Dict("en_US")
 chosen_word = random.choice(word_list).lower()
 
@@ -137,7 +139,7 @@ def check_guess(guess, chosen):
     return result
 
 def show_start_screen():
-    WIN.fill(WHITE)
+    WIN.blit(BG_IMG, (0, 0))
     title = FONT.render("Welcome to Wordle!", True, BLACK)
     prompt = SMALL_FONT.render("Press any key to start", True, DARKGRAY)
 

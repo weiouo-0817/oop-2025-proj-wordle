@@ -10,7 +10,7 @@ pygame.init()
 
 WIDTH, HEIGHT = 600, 750
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Wordle - 6 Players Turn-Based Single Word")
+pygame.display.set_caption("Wordle mutiple Players Turn-Based Single Word")
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -39,27 +39,53 @@ GAP = 8
 TOP_MARGIN = 90
 LEFT_MARGIN = (WIDTH - (COLS * BOX_SIZE + (COLS - 1) * GAP)) // 2
 
+BG_IMG = pygame.image.load("image/23671474_m.jpg").convert()
+BG_IMG = pygame.transform.scale(BG_IMG, (WIDTH, HEIGHT))
+
 d = enchant.Dict("en_US")
 
-def input_player_names():
-    names = [""] * 6
+def choose_player_count():
+    """讓使用者用 1–6 數字鍵選人數，回傳整數"""
+    num = ""
+    choosing = True
+    while choosing:
+        WIN.blit(BG_IMG, (0, 0))
+        title = FONT.render("How many players (1-6)?", True, BLACK)
+        WIN.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 40))
+
+        prompt = LABEL_FONT.render(num or "_", True, BLACK)
+        WIN.blit(prompt, (WIDTH//2 - prompt.get_width()//2, HEIGHT//2 + 20))
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.unicode.isdigit() and 1 <= int(event.unicode) <= 6:
+                    num = event.unicode
+                elif event.key == pygame.K_RETURN and num:
+                    choosing = False
+    return int(num)
+
+def input_player_names(num_players):
+    names = [""] * num_players
     current_idx = 0
     input_active = True
 
     while input_active:
-        WIN.fill(WHITE)
-        title = FONT.render("Enter 6 Player Names", True, BLACK)
-        WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, 20))
+        WIN.blit(BG_IMG, (0, 0))
+        title = FONT.render("Enter Player Names", True, BLACK)
+        WIN.blit(title, (WIDTH // 2 - title.get_width() // 2 , 20))
 
         prompt = SMALL_FONT.render("BACKSPACE to edit, ENTER to confirm", True, DARKGRAY)
         WIN.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, 80))
 
-        for i in range(6):
+        for i in range(num_players):
             color = RED if i == current_idx else BLACK
             label = LABEL_FONT.render(f"Player {i+1}:", True, BLACK )
-            WIN.blit(label, (50, 150 + i * 60))
+            WIN.blit(label, (150, 150 + i * 60))
             name_text = NAME_FONT.render(names[i], True, color)
-            WIN.blit(name_text, (190, 150 + i * 60))
+            WIN.blit(name_text, (280, 150 + i * 60))
 
         pygame.display.update()
         
@@ -73,7 +99,7 @@ def input_player_names():
                 elif event.key == pygame.K_RETURN:
                     if len(names[current_idx]) > 0:
                         current_idx += 1
-                        if current_idx >= 6:
+                        if current_idx >= num_players:
                             input_active = False
                 else:
                     if len(names[current_idx]) < 10 and event.unicode.isalpha():
@@ -117,7 +143,7 @@ def draw_board(guesses, colors, current_guess, error_msg, letter_state, players,
     global home_btn_rect # 用於回到主選單
     
     WIN.fill(WHITE)
-    title_text = FONT.render("Wordle - 6 Players", True, BLACK)
+    title_text = FONT.render("Wordle", True, BLACK)
     WIN.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 10))
 
     for i, player in enumerate(players):
@@ -215,8 +241,9 @@ def check_guess(guess, chosen, letter_state):
     return result
 
 def main():
-    players = input_player_names()
-    scores = [0] * 6
+    num_players = choose_player_count()      # ① 先決定幾人
+    players = input_player_names(num_players)   # ② 輸入相應個名字
+    scores  = [0] * num_players                # ③ 分數陣列同長
     chosen_word = random.choice(word_list).lower()
     letter_state = {c: 'unused' for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
 
@@ -225,7 +252,7 @@ def main():
     current_guess = ""
     current_player = 0
     round_attempts = 0
-    max_attempts = 12
+    max_attempts = 2 * num_players
     error_msg = ""
 
     clock = pygame.time.Clock()
@@ -285,7 +312,7 @@ def main():
                                 letter_state = {c: 'unused' for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
                                 round_attempts = 0
 
-                            elif round_attempts % 6 == 0:
+                            elif round_attempts % num_players == 0:
                                 pygame.time.wait(500)
                                 guesses.clear()
                                 colors.clear()
@@ -300,7 +327,7 @@ def main():
                                 round_attempts = 0
 
                             current_guess = ""
-                            current_player = (current_player + 1) % 6
+                            current_player = (current_player + 1) % num_players
 
                 elif len(current_guess) < COLS and event.unicode.isalpha():
                     current_guess += event.unicode.lower()
