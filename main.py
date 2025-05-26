@@ -1,0 +1,66 @@
+import pygame
+import sys
+import subprocess
+
+pygame.init()
+
+WIDTH, HEIGHT = 500, 600
+WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Wordle Start Menu")
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (180, 180, 180)
+GREEN = (106, 170, 100)
+
+FONT = pygame.font.SysFont("arial", 36)
+BUTTON_FONT = pygame.font.SysFont("arial", 28)
+
+def draw_start_menu():
+    WIN.fill(WHITE)
+
+    title = FONT.render("Welcome to Wordle!", True, BLACK)
+    WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, 100))
+
+    single_button = pygame.Rect(WIDTH//2 - 100, 220, 200, 60)
+    multi_button = pygame.Rect(WIDTH//2 - 100, 320, 200, 60)
+
+    pygame.draw.rect(WIN, GREEN, single_button, border_radius=10)
+    pygame.draw.rect(WIN, GREEN, multi_button, border_radius=10)
+
+    single_text = BUTTON_FONT.render("Single Player", True, WHITE)
+    multi_text = BUTTON_FONT.render("Six Players", True, WHITE)
+
+    WIN.blit(single_text, (single_button.x + single_button.width//2 - single_text.get_width()//2,
+                           single_button.y + single_button.height//2 - single_text.get_height()//2))
+
+    WIN.blit(multi_text, (multi_button.x + multi_button.width//2 - multi_text.get_width()//2,
+                          multi_button.y + multi_button.height//2 - multi_text.get_height()//2))
+
+    pygame.display.update()
+    return single_button, multi_button
+
+def start_menu():
+    clock = pygame.time.Clock()
+    running = True
+
+    while running:
+        clock.tick(30)
+        single_btn, multi_btn = draw_start_menu()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if single_btn.collidepoint(event.pos):
+                    subprocess.Popen([sys.executable, "singlewordle.py"])
+                    pygame.quit()
+                    sys.exit()
+                elif multi_btn.collidepoint(event.pos):
+                    subprocess.Popen([sys.executable, "multiwordle.py"])
+                    pygame.quit()
+                    sys.exit()
+
+if __name__ == "__main__":
+    start_menu()
