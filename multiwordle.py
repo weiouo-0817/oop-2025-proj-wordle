@@ -31,6 +31,7 @@ FONT = pygame.font.SysFont("arial", 45, bold=True)
 SMALL_FONT = pygame.font.SysFont("arial", 20, bold=True)
 NAME_FONT = pygame.font.SysFont("arial", 30, bold=True)
 LABEL_FONT = pygame.font.SysFont("arial", 28, bold=True)
+TEXT_FONT = pygame.font.SysFont("arial", 24, bold=True)
 
 ROWS = 6
 COLS = 5
@@ -244,6 +245,9 @@ def check_guess(guess, chosen, letter_state):
     return result
 
 def main():
+    MAX_ROUNDS = 5     # ← 想玩幾局就改這裡
+    round_count = 1      # 目前是第幾局（第一局從 1 開始）
+    
     num_players = choose_player_count()      # ① 先決定幾人
     players = input_player_names(num_players)   # ② 輸入相應個名字
     scores  = [0] * num_players                # ③ 分數陣列同長
@@ -309,6 +313,15 @@ def main():
                             if all(r == 1 for r in result):
                                 draw_board(guesses, colors, "", "", letter_state, players, current_player, scores)
                                 pygame.time.wait(1000)
+                                
+                                # ---------- 新增 ----------
+                                if round_count >= MAX_ROUNDS:          # 已經玩完最後一局
+                                    show_final_scores(players, scores)
+                                    pygame.quit()
+                                    sys.exit()
+                                round_count += 1                       # 還沒達上限，就進入下一局
+                                # --------------------------
+                                
                                 chosen_word = random.choice(word_list).lower()
                                 guesses.clear()
                                 colors.clear()
@@ -323,6 +336,13 @@ def main():
                             if round_attempts >= max_attempts:
                                 draw_board(guesses, colors, "", f"Answer: {chosen_word.upper()}", letter_state, players, current_player, scores)
                                 pygame.time.wait(2000)
+                                # ---------- 新增 ----------
+                                if round_count >= MAX_ROUNDS:
+                                    show_final_scores(players, scores)
+                                    pygame.quit()
+                                    sys.exit()
+                                round_count += 1
+                                # --------------------------
                                 chosen_word = random.choice(word_list).lower()
                                 guesses.clear()
                                 colors.clear()
