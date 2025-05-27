@@ -26,7 +26,7 @@ git clone <repository_url>
 cd oop-2025-proj-wordle
 ```
 ```bash
-sudo apt install python3.10-venv   # (optional) create and activate a virtual‑env
+sudo apt install python3.10-venv   # Windows don't need
 ```
 ```bash
 python -m venv venv                # (optional) create and activate a virtual‑env
