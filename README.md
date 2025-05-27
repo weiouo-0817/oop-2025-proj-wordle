@@ -11,7 +11,7 @@ This project is a local party / single version of the classic *Wordle* game. Up 
 |------|---------|-------|
 | Python | 3.10 or newer | Other versions may work but are untested |
 | pip packages | `pygame`, `pyenchant`, `subprocess` | 
-||
+
 
 All other files (images, `word.py`, etc.) are already included in this repository / zip.
 
