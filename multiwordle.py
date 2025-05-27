@@ -259,7 +259,7 @@ def main():
     current_guess = ""
     current_player = 0
     round_attempts = 0
-    max_attempts = 2 * num_players
+    max_attempts = 3 * num_players
     error_msg = ""
 
     clock = pygame.time.Clock()
