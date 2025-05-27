@@ -20,16 +20,22 @@ All other files (images, `word.py`, etc.) are already included in this repositor
 ---
 ## 🖥️ How to Run
 ```bash
-python -m venv venv                # (optional) create and activate a virtual‑env
-```
-```bash
-source venv/bin/activate           # Windows: venv\Scripts\activate
-```
-```bash
-pip install pygame pyenchant
+git clone <repository_url>
 ```
 ```bash
 cd oop-2025-proj-wordle
+```
+```bash
+sudo apt install python3.10-venv   # (optional) create and activate a virtual‑env
+```
+```bash
+python -m venv venv                # (optional) create and activate a virtual‑env
+```
+```bash
+source venv/bin/activate           # Windows: .\venv\Scripts\activate
+```
+```bash
+pip install pygame pyenchant
 ```
 ```bash 
 python main.py        
