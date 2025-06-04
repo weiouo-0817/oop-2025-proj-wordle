@@ -8,9 +8,10 @@ from word import word_list
 
 pygame.init()
 
+# ===================== 全域常數 ===================== #
 WIDTH, HEIGHT = 600, 750
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Wordle mutiple Players Turn-Based Single Word")
+pygame.display.set_caption("Wordle Multiple Players – Turn‑Based")
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -23,15 +24,12 @@ RED = (255, 0, 0)
 KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
 KEY_SIZE = 40
 KEY_GAP = 6
-KEY_TOP = HEIGHT - 3*(KEY_SIZE+KEY_GAP) - 100  # 上移鍵盤
-
-color_map = {'green': GREEN, 'yellow': YELLOW, 'gray': DARKGRAY, 'unused': GRAY}
+KEY_TOP = HEIGHT - 3 * (KEY_SIZE + KEY_GAP) - 100  # 上移鍵盤
 
 FONT = pygame.font.SysFont("arial", 45, bold=True)
 SMALL_FONT = pygame.font.SysFont("arial", 20, bold=True)
 NAME_FONT = pygame.font.SysFont("arial", 30, bold=True)
 LABEL_FONT = pygame.font.SysFont("arial", 28, bold=True)
-TEXT_FONT = pygame.font.SysFont("arial", 24, bold=True)
 
 ROWS = 6
 COLS = 5
@@ -40,323 +38,308 @@ GAP = 8
 TOP_MARGIN = 90
 LEFT_MARGIN = (WIDTH - (COLS * BOX_SIZE + (COLS - 1) * GAP)) // 2
 
+# 背景圖片載入
 BG_IMG = pygame.image.load("image/23671474_m.jpg").convert()
 BG_IMG = pygame.transform.scale(BG_IMG, (WIDTH, HEIGHT))
+BG_IMG_GAME = pygame.image.load("image/123.jpg").convert()
+BG_IMG_GAME = pygame.transform.scale(BG_IMG_GAME, (WIDTH, HEIGHT))
 
-BG_IMG_GAME  = pygame.image.load("image/123.jpg").convert()
-BG_IMG_GAME  = pygame.transform.scale(BG_IMG_GAME, (WIDTH, HEIGHT))
+dict_en = enchant.Dict("en_US")
 
-d = enchant.Dict("en_US")
 
-def choose_player_count():
-    """讓使用者用 1–6 數字鍵選人數，回傳整數"""
-    num = ""
-    choosing = True
-    while choosing:
-        WIN.blit(BG_IMG, (0, 0))
-        title = FONT.render("How many players (1-6)?", True, BLACK)
-        WIN.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 40))
+# ===================== 資料類別 ===================== #
+class Player:
+    """紀錄玩家名稱與分數"""
 
-        prompt = LABEL_FONT.render(num or "_", True, BLACK)
-        WIN.blit(prompt, (WIDTH//2 - prompt.get_width()//2, HEIGHT//2 + 20))
-        pygame.display.update()
+    def __init__(self, name: str):
+        self.name = name
+        self.score = 0
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit(); sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.unicode.isdigit() and 1 <= int(event.unicode) <= 6:
-                    num = event.unicode
-                elif event.key == pygame.K_RETURN and num:
-                    choosing = False
-    return int(num)
+    def add_score(self, pts: int):
+        self.score += pts
 
-def input_player_names(num_players):
-    names = [""] * num_players
-    current_idx = 0
-    input_active = True
+    def __repr__(self):
+        return f"{self.name}({self.score})"
 
-    while input_active:
-        WIN.blit(BG_IMG, (0, 0))
-        title = FONT.render("Enter Player Names", True, BLACK)
-        WIN.blit(title, (WIDTH // 2 - title.get_width() // 2 , 20))
 
-        prompt = SMALL_FONT.render("BACKSPACE to edit, ENTER to confirm", True, DARKGRAY)
-        WIN.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, 80))
+# ===================== 遊戲主體 ===================== #
+class WordleGame:
+    MAX_ROUNDS = 5  # 預設最多局數
 
-        for i in range(num_players):
-            color = RED if i == current_idx else BLACK
-            label = LABEL_FONT.render(f"Player {i+1}:", True, BLACK )
-            WIN.blit(label, (150, 150 + i * 60))
-            name_text = NAME_FONT.render(names[i], True, color)
-            WIN.blit(name_text, (280, 150 + i * 60))
+    def __init__(self):
+        """初始化所有狀態與資源"""
+        self.clock = pygame.time.Clock()
+        self.players: list[Player] = []
+        self.current_player_idx = 0
+        self.round_count = 1
 
-        pygame.display.update()
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_BACKSPACE:
-                    names[current_idx] = names[current_idx][:-1]
-                elif event.key == pygame.K_RETURN:
-                    if len(names[current_idx]) > 0:
-                        current_idx += 1
-                        if current_idx >= num_players:
-                            input_active = False
+        # 本局狀態
+        self.chosen_word = random.choice(word_list).lower()
+        self.letter_state = {c: "unused" for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
+        self.guesses: list[str] = []
+        self.colors: list[list[tuple[int, int, int]]] = []
+        self.current_guess = ""
+        self.round_attempts = 0
+        self.max_attempts = 0  # 依人數決定
+        self.error_msg = ""
+        self.home_btn_rect = pygame.Rect(0, 0, 0, 0)  # 先給預設值
+
+    # ---------- 前置輸入 ---------- #
+    def choose_player_count(self) -> int:
+        num = ""
+        choosing = True
+        while choosing:
+            WIN.blit(BG_IMG, (0, 0))
+            title = FONT.render("How many players (1-6)?", True, BLACK)
+            WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 2 - 40))
+            prompt = LABEL_FONT.render(num or "_", True, BLACK)
+            WIN.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + 20))
+            pygame.display.update()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit(); sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.unicode.isdigit() and 1 <= int(event.unicode) <= 6:
+                        num = event.unicode
+                    elif event.key == pygame.K_RETURN and num:
+                        choosing = False
+        return int(num)
+
+    def input_player_names(self, n: int):
+        names = [""] * n
+        idx = 0
+        active = True
+        while active:
+            WIN.blit(BG_IMG, (0, 0))
+            title = FONT.render("Enter Player Names", True, BLACK)
+            WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, 20))
+            prompt = SMALL_FONT.render("BACKSPACE to edit, ENTER to confirm", True, DARKGRAY)
+            WIN.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, 80))
+
+            for i in range(n):
+                color = RED if i == idx else BLACK
+                label = LABEL_FONT.render(f"Player {i + 1}:", True, BLACK)
+                WIN.blit(label, (150, 150 + i * 60))
+                name_text = NAME_FONT.render(names[i], True, color)
+                WIN.blit(name_text, (280, 150 + i * 60))
+            pygame.display.update()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit(); sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_BACKSPACE:
+                        names[idx] = names[idx][:-1]
+                    elif event.key == pygame.K_RETURN and names[idx]:
+                        idx += 1
+                        if idx >= n:
+                            active = False
+                    elif event.unicode.isalpha() and len(names[idx]) < 10:
+                        names[idx] += event.unicode
+        random.shuffle(names)
+        self.players = [Player(name) for name in names]
+        self.max_attempts = 3 * len(self.players)
+
+    # ---------- 核心邏輯 ---------- #
+    def check_guess(self, guess: str):
+        result = [0] * COLS
+        alpha = [0] * 26
+        for c in self.chosen_word:
+            alpha[ord(c) - 97] += 1
+        for i in range(COLS):
+            if guess[i] == self.chosen_word[i]:
+                result[i] = 1
+                alpha[ord(guess[i]) - 97] -= 1
+        for i in range(COLS):
+            if result[i] == 0 and alpha[ord(guess[i]) - 97] > 0:
+                result[i] = 2
+                alpha[ord(guess[i]) - 97] -= 1
+
+        # 更新鍵盤顏色狀態 & 加分
+        for i, ch in enumerate(guess):
+            if result[i] == 1:
+                self.letter_state[ch.upper()] = "green"
+                self.players[self.current_player_idx].add_score(3)
+            elif result[i] == 2 and self.letter_state[ch.upper()] != "green":
+                self.letter_state[ch.upper()] = "yellow"
+                self.players[self.current_player_idx].add_score(2)
+            elif self.letter_state[ch.upper()] not in ("green", "yellow"):
+                self.letter_state[ch.upper()] = "gray"
+        return result
+
+    # ---------- 畫面渲染 ---------- #
+    def draw_board(self):
+        WIN.blit(BG_IMG_GAME, (0, 0))
+        title_text = FONT.render("Wordle", True, BLACK)
+        WIN.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 10))
+
+        # 玩家清單
+        for i, p in enumerate(self.players):
+            color = GREEN if i == self.current_player_idx else BLACK
+            info = f"{p.name} ({p.score})"
+            txt = SMALL_FONT.render(info, True, color)
+            WIN.blit(txt, (10, 60 + i * 25))
+
+        start_row = max(0, len(self.guesses) - ROWS)
+        vis_guesses = self.guesses[start_row:]
+        vis_colors = self.colors[start_row:]
+
+        for row in range(ROWS):
+            for col in range(COLS):
+                x = LEFT_MARGIN + col * (BOX_SIZE + GAP)
+                y = TOP_MARGIN + row * (BOX_SIZE + GAP)
+                rect = pygame.Rect(x, y, BOX_SIZE, BOX_SIZE)
+
+                if row < len(vis_guesses):
+                    color = vis_colors[row][col]
+                    letter = vis_guesses[row][col].upper()
+                elif row == len(vis_guesses):
+                    color = GRAY
+                    letter = self.current_guess[col].upper() if col < len(self.current_guess) else ""
                 else:
-                    if len(names[current_idx]) < 10 and event.unicode.isalpha():
-                        names[current_idx] += event.unicode
-        
-    random.shuffle(names)  # 打亂順序
-    return names
-    
-def show_final_scores(players, scores):
-    WIN.blit(BG_IMG_GAME, (0, 0))  # 使用遊戲背景圖片
-    title = FONT.render("Final Scores", True, BLACK)
-    WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, 40))
+                    color = DARKGRAY
+                    letter = ""
 
-    sorted_scores = sorted(zip(players, scores), key=lambda x: -x[1])
+                pygame.draw.rect(WIN, color, rect)
+                pygame.draw.rect(WIN, BLACK, rect, 2)
+                if letter:
+                    lt = FONT.render(letter, True, BLACK)
+                    WIN.blit(lt, (x + BOX_SIZE // 2 - lt.get_width() // 2,
+                                  y + BOX_SIZE // 2 - lt.get_height() // 2))
 
-    for i, (player, score) in enumerate(sorted_scores):
-        score_text = SMALL_FONT.render(f"{i+1}. {player}: {score} points", True, BLACK)
-        WIN.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 120 + i * 40))
+        # 錯誤訊息
+        if self.error_msg:
+            err = SMALL_FONT.render(self.error_msg, True, RED)
+            WIN.blit(err, (WIDTH // 2 - err.get_width() // 2, HEIGHT - 60))
 
-    exit_btn = pygame.Rect(WIDTH // 2 - 60, HEIGHT - 80, 120, 40)
-    pygame.draw.rect(WIN, DARKGRAY, exit_btn, border_radius=10)
-    exit_text = SMALL_FONT.render("Exit", True, WHITE)
-    WIN.blit(exit_text, (exit_btn.x + 60 - exit_text.get_width() // 2,
-                         exit_btn.y + 20 - exit_text.get_height() // 2))
+        # 鍵盤
+        color_map = {"green": GREEN, "yellow": YELLOW, "gray": DARKGRAY, "unused": GRAY}
+        for r, row_key in enumerate(KEY_ROWS):
+            for c, ch in enumerate(row_key):
+                x = (WIDTH - len(row_key) * (KEY_SIZE + KEY_GAP)) // 2 + c * (KEY_SIZE + KEY_GAP)
+                y = KEY_TOP + r * (KEY_SIZE + KEY_GAP)
+                rect = pygame.Rect(x, y, KEY_SIZE, KEY_SIZE)
+                clr = color_map[self.letter_state[ch]]
+                pygame.draw.rect(WIN, clr, rect, border_radius=4)
+                pygame.draw.rect(WIN, BLACK, rect, 2, border_radius=4)
+                t = SMALL_FONT.render(ch, True, BLACK)
+                WIN.blit(t, (x + KEY_SIZE // 2 - t.get_width() // 2,
+                             y + KEY_SIZE // 2 - t.get_height() // 2))
 
-    pygame.display.update()
+        # End Game 按鈕
+        end_rect = pygame.Rect(WIDTH - 140, HEIGHT - 45, 120, 35)
+        pygame.draw.rect(WIN, RED, end_rect, border_radius=8)
+        etxt = SMALL_FONT.render("End Game", True, WHITE)
+        WIN.blit(etxt, (end_rect.x + 60 - etxt.get_width() // 2,
+                        end_rect.y + 18 - etxt.get_height() // 2))
 
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = event.pos
-                if exit_btn.collidepoint(mx, my):
-                    pygame.quit()
-                    sys.exit()
+        # Home 按鈕
+        self.home_btn_rect = pygame.Rect(WIDTH - 270, HEIGHT - 45, 110, 35)
+        pygame.draw.rect(WIN, DARKGRAY, self.home_btn_rect, border_radius=8)
+        htxt = SMALL_FONT.render("Home", True, WHITE)
+        WIN.blit(htxt, (self.home_btn_rect.x + 55 - htxt.get_width() // 2,
+                        self.home_btn_rect.y + 18 - htxt.get_height() // 2))
 
-def draw_board(guesses, colors, current_guess, error_msg, letter_state, players, current_player, scores):
-    
-    global home_btn_rect # 用於回到主選單
-    
-    WIN.blit(BG_IMG_GAME, (0, 0))  # 使用遊戲背景圖片
-    title_text = FONT.render("Wordle", True, BLACK)
-    WIN.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 10))
+        pygame.display.update()
 
-    for i, player in enumerate(players):
-        color = GREEN if i == current_player else BLACK
-        info = f"{player} ({scores[i]})"
-        player_text = SMALL_FONT.render(info, True, color)
-        WIN.blit(player_text, (10, 60 + i * 25))
+    # ---------- 輔助 ---------- #
+    def show_final_scores(self):
+        WIN.blit(BG_IMG_GAME, (0, 0))
+        title = FONT.render("Final Scores", True, BLACK)
+        WIN.blit(title, (WIDTH // 2 - title.get_width() // 2, 40))
+        sorted_scores = sorted(self.players, key=lambda p: -p.score)
+        for i, p in enumerate(sorted_scores):
+            txt = SMALL_FONT.render(f"{i + 1}. {p.name}: {p.score} points", True, BLACK)
+            WIN.blit(txt, (WIDTH // 2 - txt.get_width() // 2, 120 + i * 40))
+        exit_btn = pygame.Rect(WIDTH // 2 - 60, HEIGHT - 80, 120, 40)
+        pygame.draw.rect(WIN, DARKGRAY, exit_btn, border_radius=10)
+        etxt = SMALL_FONT.render("Exit", True, WHITE)
+        WIN.blit(etxt, (exit_btn.x + 60 - etxt.get_width() // 2,
+                        exit_btn.y + 20 - etxt.get_height() // 2))
+        pygame.display.update()
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit(); sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN and exit_btn.collidepoint(event.pos):
+                    pygame.quit(); sys.exit()
 
-    start_row = max(0, len(guesses) - ROWS)
-    visible_guesses = guesses[start_row:]
-    visible_colors = colors[start_row:]
+    def reset_round(self):
+        """準備下一局"""
+        self.round_count += 1
+        self.chosen_word = random.choice(word_list).lower()
+        self.letter_state = {c: "unused" for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
+        self.guesses.clear()
+        self.colors.clear()
+        self.current_guess = ""
+        self.round_attempts = 0
+        self.error_msg = ""
+        self.current_player_idx = 0
 
-    for row in range(ROWS):
-        for col in range(COLS):
-            x = LEFT_MARGIN + col * (BOX_SIZE + GAP)
-            y = TOP_MARGIN + row * (BOX_SIZE + GAP)
-            rect = pygame.Rect(x, y, BOX_SIZE, BOX_SIZE)
+    # ---------- 遊戲主迴圈 ---------- #
+    def run(self):
+        # 前置輸入
+        cnt = self.choose_player_count()
+        self.input_player_names(cnt)
 
-            if row < len(visible_guesses):
-                color = visible_colors[row][col]
-                letter = visible_guesses[row][col].upper()
-            elif row == len(visible_guesses):
-                color = GRAY
-                letter = current_guess[col].upper() if col < len(current_guess) else ""
-            else:
-                color = DARKGRAY
-                letter = ""
+        while True:
+            self.clock.tick(30)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit(); sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    mx, my = event.pos
+                    if WIDTH - 140 <= mx <= WIDTH - 20 and HEIGHT - 45 <= my <= HEIGHT - 10:
+                        self.show_final_scores()
+                    elif self.home_btn_rect.collidepoint(mx, my):
+                        subprocess.Popen([sys.executable, "main.py"])
+                        pygame.quit(); sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_BACKSPACE:
+                        self.current_guess = self.current_guess[:-1]
+                        self.error_msg = ""
+                    elif event.key == pygame.K_RETURN:
+                        if len(self.current_guess) == COLS:
+                            if not dict_en.check(self.current_guess):
+                                self.error_msg = "Not a valid word. Please continue typing."
+                            else:
+                                result = self.check_guess(self.current_guess)
+                                guess_color = [GREEN if r == 1 else YELLOW if r == 2 else GRAY for r in result]
+                                self.guesses.append(self.current_guess)
+                                self.colors.append(guess_color)
+                                self.round_attempts += 1
 
-            pygame.draw.rect(WIN, color, rect)
-            pygame.draw.rect(WIN, BLACK, rect, 2)
+                                # 是否全部正確？
+                                if all(r == 1 for r in result):
+                                    self.draw_board()
+                                    pygame.time.wait(1000)
+                                    if self.round_count >= self.MAX_ROUNDS:
+                                        self.show_final_scores()
+                                    self.reset_round()
 
-            if letter:
-                letter_text = FONT.render(letter, True, BLACK)
-                WIN.blit(letter_text, (x + BOX_SIZE//2 - letter_text.get_width()//2,
-                                       y + BOX_SIZE//2 - letter_text.get_height()//2))
+                                elif self.round_attempts >= self.max_attempts:
+                                    self.draw_board()
+                                    pygame.time.wait(1500)
+                                    if self.round_count >= self.MAX_ROUNDS:
+                                        self.show_final_scores()
+                                    self.reset_round()
 
-    if error_msg:
-        error_surface = SMALL_FONT.render(error_msg, True, RED)
-        WIN.blit(error_surface, (WIDTH // 2 - error_surface.get_width() // 2, HEIGHT - 60))
+                                else:
+                                    # 換下一位
+                                    self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
+                                    if self.round_attempts % len(self.players) == 0:
+                                        # 每回合結束暫停一下並清盤
+                                        pygame.time.wait(500)
+                                        self.guesses.clear()
+                                        self.colors.clear()
+                                self.current_guess = ""
+                    elif len(self.current_guess) < COLS and event.unicode.isalpha():
+                        self.current_guess += event.unicode.lower()
+                        self.error_msg = ""
+            self.draw_board()
 
-    for r, row in enumerate(KEY_ROWS):
-        for c, ch in enumerate(row):
-            x = (WIDTH - len(row)*(KEY_SIZE+KEY_GAP))//2 + c*(KEY_SIZE+KEY_GAP)
-            y = KEY_TOP + r*(KEY_SIZE+KEY_GAP)
-            rect = pygame.Rect(x, y, KEY_SIZE, KEY_SIZE)
-            clr = color_map[letter_state[ch]]
-            pygame.draw.rect(WIN, clr, rect, border_radius=4)
-            pygame.draw.rect(WIN, BLACK, rect, 2, border_radius=4)
 
-            txt = SMALL_FONT.render(ch, True, BLACK)
-            WIN.blit(txt, (x + KEY_SIZE//2 - txt.get_width()//2,
-                           y + KEY_SIZE//2 - txt.get_height()//2))
-
-    # End Game button
-    end_btn_rect = pygame.Rect(WIDTH - 140, HEIGHT - 45, 120, 35)
-    pygame.draw.rect(WIN, RED, end_btn_rect, border_radius=8)
-    end_txt = SMALL_FONT.render("End Game", True, WHITE)
-    WIN.blit(end_txt, (end_btn_rect.x + 60 - end_txt.get_width() // 2,
-                       end_btn_rect.y + 18 - end_txt.get_height() // 2))
-    
-    # ---------- 新增 Home 按鈕（右下，靠 End 的左邊一點） ----------
-    home_btn_rect = pygame.Rect(WIDTH-270, HEIGHT-45, 110, 35)
-    pygame.draw.rect(WIN, DARKGRAY, home_btn_rect, border_radius=8)
-    home_txt = SMALL_FONT.render("Home", True, WHITE)
-    WIN.blit(home_txt,
-             (home_btn_rect.x + 55 - home_txt.get_width()//2,
-              home_btn_rect.y + 18 - home_txt.get_height()//2))   
-
-    pygame.display.update()
-
-def check_guess(guess, chosen, letter_state):
-    result = [0]*COLS
-    alpha = [0]*26
-    for c in chosen:
-        alpha[ord(c)-97] += 1
-
-    for i in range(COLS):
-        if guess[i] == chosen[i]:
-            result[i] = 1
-            alpha[ord(guess[i])-97] -= 1
-
-    for i in range(COLS):
-        if result[i] == 0 and alpha[ord(guess[i])-97] > 0:
-            result[i] = 2
-            alpha[ord(guess[i])-97] -= 1
-
-    for i, ch in enumerate(guess):
-        if result[i] == 1:
-            letter_state[ch.upper()] = 'green'
-        elif result[i] == 2 and letter_state[ch.upper()] != 'green':
-            letter_state[ch.upper()] = 'yellow'
-        elif letter_state[ch.upper()] not in ('green', 'yellow'):
-            letter_state[ch.upper()] = 'gray'
-
-    return result
-
-def main():
-    MAX_ROUNDS = 5     # ← 想玩幾局就改這裡
-    round_count = 1      # 目前是第幾局（第一局從 1 開始）
-    
-    num_players = choose_player_count()      # ① 先決定幾人
-    players = input_player_names(num_players)   # ② 輸入相應個名字
-    scores  = [0] * num_players                # ③ 分數陣列同長
-    chosen_word = random.choice(word_list).lower()
-    letter_state = {c: 'unused' for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
-
-    guesses = []
-    colors = []
-    current_guess = ""
-    current_player = 0
-    round_attempts = 0
-    max_attempts = 3 * num_players
-    error_msg = ""
-
-    clock = pygame.time.Clock()
-
-    while True:
-        clock.tick(30)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = event.pos
-                if WIDTH - 140 <= mx <= WIDTH - 20 and HEIGHT - 45 <= my <= HEIGHT - 10:
-                    show_final_scores(players, scores)
-
-                # --- 點 Home：回到主選單 (main.py) ---
-                if home_btn_rect.collidepoint(mx, my):
-                    subprocess.Popen([sys.executable, "main.py"])
-                    pygame.quit()      # 關閉目前視窗
-                    sys.exit()
-
-                # --- 點 End Game：照舊顯示總分 ---
-                if WIDTH-140 <= mx <= WIDTH-20 and HEIGHT-45 <= my <= HEIGHT-10:
-                    show_final_scores(players, scores)
-
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_BACKSPACE:
-                    current_guess = current_guess[:-1]
-                    error_msg = ""
-                elif event.key == pygame.K_RETURN:
-                    if len(current_guess) == COLS:
-                        if not d.check(current_guess):
-                            error_msg = "Not a valid word. Please continue typing."
-                        else:
-                            error_msg = ""
-                            result = check_guess(current_guess, chosen_word, letter_state)
-                            guess_color = [
-                                GREEN if r == 1 else YELLOW if r == 2 else GRAY for r in result
-                            ]
-
-                            for res in result:
-                                if res == 1:
-                                    scores[current_player] += 3
-                                elif res == 2:
-                                    scores[current_player] += 2
-
-                            guesses.append(current_guess)
-                            colors.append(guess_color)
-                            round_attempts += 1
-                            if all(r == 1 for r in result):
-                                draw_board(guesses, colors, "", "", letter_state, players, current_player, scores)
-                                pygame.time.wait(1000)
-                                
-                                # ---------- 新增 ----------
-                                if round_count >= MAX_ROUNDS:          # 已經玩完最後一局
-                                    show_final_scores(players, scores)
-                                    pygame.quit()
-                                    sys.exit()
-                                round_count += 1                       # 還沒達上限，就進入下一局
-                                # --------------------------
-                                
-                                chosen_word = random.choice(word_list).lower()
-                                guesses.clear()
-                                colors.clear()
-                                letter_state = {c: 'unused' for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
-                                round_attempts = 0
-
-                            elif round_attempts % num_players == 0:
-                                pygame.time.wait(500)
-                                guesses.clear()
-                                colors.clear()
-
-                            if round_attempts >= max_attempts:
-                                draw_board(guesses, colors, "", f"Answer: {chosen_word.upper()}", letter_state, players, current_player, scores)
-                                pygame.time.wait(2000)
-                                # ---------- 新增 ----------
-                                if round_count >= MAX_ROUNDS:
-                                    show_final_scores(players, scores)
-                                    pygame.quit()
-                                    sys.exit()
-                                round_count += 1
-                                # --------------------------
-                                chosen_word = random.choice(word_list).lower()
-                                guesses.clear()
-                                colors.clear()
-                                letter_state = {c: 'unused' for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
-                                round_attempts = 0
-
-                            current_guess = ""
-                            current_player = (current_player + 1) % num_players
-
-                elif len(current_guess) < COLS and event.unicode.isalpha():
-                    current_guess += event.unicode.lower()
-                    error_msg = ""
-
-        draw_board(guesses, colors, current_guess, error_msg, letter_state, players, current_player, scores)
-
+# -------------------- 入口 -------------------- #
 if __name__ == "__main__":
-    main()
+    WordleGame().run()
