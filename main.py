@@ -28,21 +28,25 @@ def draw_start_menu():
 
     single_button = pygame.Rect(WIDTH//2 - 100, 220, 200, 60)
     multi_button = pygame.Rect(WIDTH//2 - 100, 320, 200, 60)
+    time_trial_button = pygame.Rect(WIDTH//2 - 100, 420, 200, 60)
 
     pygame.draw.rect(WIN, GREEN, single_button, border_radius=10)
     pygame.draw.rect(WIN, GREEN, multi_button, border_radius=10)
+    pygame.draw.rect(WIN, GREEN, time_trial_button, border_radius=10)
 
     single_text = BUTTON_FONT.render("Single Player", True, WHITE)
-    multi_text = BUTTON_FONT.render("Muti Players", True, WHITE)
+    multi_text = BUTTON_FONT.render("Six Players", True, WHITE)
+    time_trial_text = BUTTON_FONT.render("Time Trial", True, WHITE)
 
     WIN.blit(single_text, (single_button.x + single_button.width//2 - single_text.get_width()//2,
                            single_button.y + single_button.height//2 - single_text.get_height()//2))
-
     WIN.blit(multi_text, (multi_button.x + multi_button.width//2 - multi_text.get_width()//2,
                           multi_button.y + multi_button.height//2 - multi_text.get_height()//2))
+    WIN.blit(time_trial_text, (time_trial_button.x + time_trial_button.width//2 - time_trial_text.get_width()//2,
+                               time_trial_button.y + time_trial_button.height//2 - time_trial_text.get_height()//2))
 
     pygame.display.update()
-    return single_button, multi_button
+    return single_button, multi_button, time_trial_button
 
 def start_menu():
     clock = pygame.time.Clock()
@@ -50,7 +54,7 @@ def start_menu():
 
     while running:
         clock.tick(30)
-        single_btn, multi_btn = draw_start_menu()
+        single_btn, multi_btn, time_trial_btn = draw_start_menu()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -63,6 +67,10 @@ def start_menu():
                     sys.exit()
                 elif multi_btn.collidepoint(event.pos):
                     subprocess.Popen([sys.executable, "multiwordle.py"])
+                    pygame.quit()
+                    sys.exit()
+                elif time_trial_btn.collidepoint(event.pos):
+                    subprocess.Popen([sys.executable, "single_time_trial.py"])
                     pygame.quit()
                     sys.exit()
 
