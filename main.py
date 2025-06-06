@@ -33,7 +33,7 @@ def draw_start_menu():
     pygame.draw.rect(WIN, GREEN, multi_button, border_radius=10)
 
     single_text = BUTTON_FONT.render("Single Player", True, WHITE)
-    multi_text = BUTTON_FONT.render("Six Players", True, WHITE)
+    multi_text = BUTTON_FONT.render("Muti Players", True, WHITE)
 
     WIN.blit(single_text, (single_button.x + single_button.width//2 - single_text.get_width()//2,
                            single_button.y + single_button.height//2 - single_text.get_height()//2))
