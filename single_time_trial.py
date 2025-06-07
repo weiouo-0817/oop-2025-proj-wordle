@@ -10,7 +10,7 @@ from word import word_list  # 自備 5 字母單字表
 
 pygame.init()
 
-WIDTH, HEIGHT = 600, 750
+WIDTH, HEIGHT = 600, 850
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Wordle – Time Trial Mode")
 

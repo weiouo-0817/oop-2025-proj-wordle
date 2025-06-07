@@ -5,6 +5,8 @@
 This project is a local party / single version of the classic *Wordle* game. Up to **6 players** take turns guessing the **same hidden five‑letter word**, compete for points, and enjoy a lively scoreboard—all wrapped in a colorful GUI built with **Pygame**.
 
 ---
+![遊戲標題背景](image/Screenshot%20from%202025-06-07%2015-06-25.png)
+---
 
 ## 🛠 Prerequisites
 | Tool | Version | Notes |
@@ -51,6 +53,8 @@ oop-2025-proj-wordle/
 ├── word.py           # list of valid 5‑letter words
 ├── multiwordle.py
 ├── singlewordle.py
+├── single_time_trial.py
+├── classdiagram.md
 ├── image/
 │   ├── 23671474_m.jpg    # title / menu background
 │   └── 123.jpg           # in‑game background
@@ -85,4 +89,4 @@ oop-2025-proj-wordle/
 ----
 
 ## 👥 Credits
- **chen-wei wu** /     Hope you have fun to play the game !
+ **chen-wei wu** / **Renee kao**     Hope you have fun to play the game !
