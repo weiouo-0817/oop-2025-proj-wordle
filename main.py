@@ -4,7 +4,7 @@ import subprocess
 
 pygame.init()
 
-WIDTH, HEIGHT = 500, 600
+WIDTH, HEIGHT = 600, 700
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Wordle Start Menu")
 

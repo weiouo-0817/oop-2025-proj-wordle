@@ -211,7 +211,7 @@ class WordleGame:
         # 錯誤訊息
         if self.error_msg:
             err = SMALL_FONT.render(self.error_msg, True, RED)
-            WIN.blit(err, (WIDTH // 2 - err.get_width() // 2, HEIGHT - 60))
+            WIN.blit(err, (WIDTH // 2 - err.get_width() // 2, HEIGHT - 70))
 
         # 鍵盤
         color_map = {"green": GREEN, "yellow": YELLOW, "gray": DARKGRAY, "unused": GRAY}
@@ -309,6 +309,7 @@ class WordleGame:
                                 self.guesses.append(self.current_guess)
                                 self.colors.append(guess_color)
                                 self.round_attempts += 1
+                                self.current_guess = ""
 
                                 # 是否全部正確？
                                 if all(r == 1 for r in result):
@@ -320,6 +321,12 @@ class WordleGame:
 
                                 elif self.round_attempts >= self.max_attempts:
                                     self.draw_board()
+                                        # ① 把答案印到畫面底端
+                                    ans_txt = SMALL_FONT.render(
+                                        f"Answer: {self.chosen_word.upper()}", True, RED)
+                                    WIN.blit(ans_txt, (WIDTH // 2 - ans_txt.get_width() // 2,
+                                                    HEIGHT - 90))
+                                    pygame.display.update()    # ② 強制刷新，玩家能看到答案
                                     pygame.time.wait(1500)
                                     if self.round_count >= self.MAX_ROUNDS:
                                         self.show_final_scores()

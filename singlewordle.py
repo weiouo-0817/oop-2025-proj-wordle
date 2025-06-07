@@ -141,7 +141,7 @@ class WordleGame:
         # 錯誤訊息
         if self.error_msg:
             err = SMALL_FONT.render(self.error_msg, True, RED)
-            WIN.blit(err, (WIDTH // 2 - err.get_width() // 2, HEIGHT - 80))
+            WIN.blit(err, (WIDTH // 2 - err.get_width() // 2, HEIGHT - 40))
 
         # 結果訊息
         if self.game_over:
