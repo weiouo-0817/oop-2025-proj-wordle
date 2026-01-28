@@ -19,7 +19,7 @@ GREEN = (106, 170, 100)
 TITLE_FONT = pygame.font.SysFont("arial", 48, bold=True)
 FONT = pygame.font.SysFont("arial", 36, bold=True)
 BUTTON_FONT = pygame.font.SysFont("arial", 28 , bold=True)
-
+# Draw the start menu
 def draw_start_menu():
     WIN.blit(BG_IMG, (0, 0))
 
